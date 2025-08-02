@@ -11,51 +11,58 @@ const Index = () => {
   const [appState, setAppState] = useState<AppState>("upload");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [processingProgress, setProcessingProgress] = useState(0);
-  const [processingStatus, setProcessingStatus] = useState("Initializing AI models...");
+  const [processingStatus, setProcessingStatus] = useState("");
+  const [vocalsUrl, setVocalsUrl] = useState<string>("");
+  const [instrumentalUrl, setInstrumentalUrl] = useState<string>("");
   const { toast } = useToast();
 
-  // Real API processing function
   const processAudioFile = async (file: File) => {
     try {
+      setProcessingProgress(0);
+      setProcessingStatus("Uploading file...");
+      console.log("Starting audio processing for file:", file.name);
+
       const formData = new FormData();
       formData.append('audio', file);
 
-      setProcessingStatus("Uploading file to server...");
-      setProcessingProgress(10);
+      setProcessingProgress(20);
+      console.log("File uploaded, sending to server...");
 
-      // TODO: Replace with your actual Supabase Edge Function URL
-      const response = await fetch('/api/audio-separator', {
+      const response = await fetch('http://localhost:5000/separate', {
         method: 'POST',
         body: formData,
       });
 
-      setProcessingProgress(50);
-      setProcessingStatus("Running AI separation algorithm...");
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Processing failed');
+      if (!response.ok) {
+        throw new Error('Failed to process audio');
       }
 
+      setProcessingProgress(50);
+      setProcessingStatus("Separating vocals and instruments...");
+      console.log("Server processing audio...");
+
+      const result = await response.json();
+      
       setProcessingProgress(100);
-      setProcessingStatus("Separation complete!");
+      setProcessingStatus("Processing complete!");
+      console.log("Audio separation completed successfully:", result);
+
+      // Store the result paths for download
+      setVocalsUrl(`http://localhost:5000${result.vocalsPath}`);
+      setInstrumentalUrl(`http://localhost:5000${result.accompanimentPath}`);
 
       setTimeout(() => {
         setAppState("results");
+        console.log("Results ready for download");
         toast({
           title: "Success!",
           description: "Your audio has been successfully separated.",
         });
       }, 1000);
 
-      // Store the results for display
-      // You'll need to add state for these URLs
-      console.log('Vocals URL:', result.vocalsUrl);
-      console.log('Instrumental URL:', result.instrumentalUrl);
-
     } catch (error) {
-      console.error('Processing error:', error);
+      console.error("Error processing audio:", error);
+      setProcessingStatus("Error processing audio. Please try again.");
       toast({
         title: "Error",
         description: "Failed to process audio. Please try again.",
@@ -69,37 +76,56 @@ const Index = () => {
     setUploadedFile(file);
     setAppState("processing");
     setProcessingProgress(0);
-    setProcessingStatus("Initializing AI models...");
+    setProcessingStatus("Initializing...");
+    
+    console.log("File uploaded:", file.name, "Size:", file.size, "bytes");
     
     toast({
       title: "Upload successful!",
-      description: "Starting AI separation process...",
+      description: "Starting audio separation process...",
     });
 
-    // Start real processing
     processAudioFile(file);
   };
 
   const handleDownloadVocals = () => {
-    // TODO: API call here to download vocals
-    toast({
-      title: "Download started",
-      description: "Vocals track is being downloaded...",
-    });
+    console.log("Downloading vocals from:", vocalsUrl);
+    if (vocalsUrl) {
+      const link = document.createElement('a');
+      link.href = vocalsUrl;
+      link.download = 'vocals.wav';
+      link.click();
+      console.log("Vocals download initiated");
+      toast({
+        title: "Download started",
+        description: "Vocals track is being downloaded...",
+      });
+    }
   };
 
   const handleDownloadInstrumental = () => {
-    // TODO: API call here to download instrumental
-    toast({
-      title: "Download started", 
-      description: "Instrumental track is being downloaded...",
-    });
+    console.log("Downloading instrumental from:", instrumentalUrl);
+    if (instrumentalUrl) {
+      const link = document.createElement('a');
+      link.href = instrumentalUrl;
+      link.download = 'instrumental.wav';
+      link.click();
+      console.log("Instrumental download initiated");
+      toast({
+        title: "Download started", 
+        description: "Instrumental track is being downloaded...",
+      });
+    }
   };
 
   const handleNewUpload = () => {
     setAppState("upload");
     setUploadedFile(null);
     setProcessingProgress(0);
+    setProcessingStatus("");
+    setVocalsUrl("");
+    setInstrumentalUrl("");
+    console.log("Reset for new upload");
   };
 
   return (
@@ -121,8 +147,8 @@ const Index = () => {
 
         {appState === "results" && (
           <ResultsSection
-            vocalsUrl="#" // TODO: Replace with actual audio URLs
-            instrumentalUrl="#"
+            vocalsUrl={vocalsUrl}
+            instrumentalUrl={instrumentalUrl}
             onDownloadVocals={handleDownloadVocals}
             onDownloadInstrumental={handleDownloadInstrumental}
           />
