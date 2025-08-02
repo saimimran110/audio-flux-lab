@@ -14,46 +14,55 @@ const Index = () => {
   const [processingStatus, setProcessingStatus] = useState("Initializing AI models...");
   const { toast } = useToast();
 
-  // Mock processing simulation
-  const simulateProcessing = () => {
-    const statuses = [
-      "Initializing AI models...",
-      "Analyzing audio frequencies...",
-      "Separating vocal tracks...",
-      "Processing instrumental layers...",
-      "Finalizing audio quality...",
-      "Almost done..."
-    ];
+  // Real API processing function
+  const processAudioFile = async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('audio', file);
 
-    let progress = 0;
-    let statusIndex = 0;
+      setProcessingStatus("Uploading file to server...");
+      setProcessingProgress(10);
 
-    const interval = setInterval(() => {
-      progress += Math.random() * 20;
-      
-      if (progress >= 100) {
-        progress = 100;
-        setProcessingProgress(progress);
-        setProcessingStatus("Separation complete!");
-        clearInterval(interval);
-        
-        setTimeout(() => {
-          setAppState("results");
-          toast({
-            title: "Success!",
-            description: "Your audio has been successfully separated.",
-          });
-        }, 1000);
-        return;
+      // TODO: Replace with your actual Supabase Edge Function URL
+      const response = await fetch('/api/audio-separator', {
+        method: 'POST',
+        body: formData,
+      });
+
+      setProcessingProgress(50);
+      setProcessingStatus("Running AI separation algorithm...");
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Processing failed');
       }
 
-      setProcessingProgress(progress);
-      
-      if (Math.random() > 0.7 && statusIndex < statuses.length - 1) {
-        statusIndex++;
-        setProcessingStatus(statuses[statusIndex]);
-      }
-    }, 800);
+      setProcessingProgress(100);
+      setProcessingStatus("Separation complete!");
+
+      setTimeout(() => {
+        setAppState("results");
+        toast({
+          title: "Success!",
+          description: "Your audio has been successfully separated.",
+        });
+      }, 1000);
+
+      // Store the results for display
+      // You'll need to add state for these URLs
+      console.log('Vocals URL:', result.vocalsUrl);
+      console.log('Instrumental URL:', result.instrumentalUrl);
+
+    } catch (error) {
+      console.error('Processing error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process audio. Please try again.",
+        variant: "destructive",
+      });
+      setAppState("upload");
+    }
   };
 
   const handleFileUpload = (file: File) => {
@@ -67,8 +76,8 @@ const Index = () => {
       description: "Starting AI separation process...",
     });
 
-    // Start processing simulation
-    simulateProcessing();
+    // Start real processing
+    processAudioFile(file);
   };
 
   const handleDownloadVocals = () => {
