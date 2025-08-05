@@ -22,34 +22,42 @@ const Index = () => {
       setProcessingStatus("Uploading file...");
       console.log("Starting audio processing for file:", file.name);
 
-      const formData = new FormData();
-      formData.append('audio', file);
-
+      // TODO: Implement backend call here
+      // Create FormData and send to your Express server
+      // const formData = new FormData();
+      // formData.append('audio', file);
+      
       setProcessingProgress(20);
       console.log("File uploaded, sending to server...");
 
-      const response = await fetch('http://localhost:5000/separate', {
-        method: 'POST',
-        body: formData,
-      });
+      // TODO: Replace this with actual server call
+      // const response = await fetch('http://localhost:5000/separate', {
+      //   method: 'POST',
+      //   body: formData,
+      // });
 
-      if (!response.ok) {
-        throw new Error('Failed to process audio');
-      }
-
+      // TODO: Handle server response
+      // const result = await response.json();
+      
+      // For demo purposes - simulate processing
       setProcessingProgress(50);
       setProcessingStatus("Separating vocals and instruments...");
       console.log("Server processing audio...");
 
-      const result = await response.json();
+      // Simulate processing delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       setProcessingProgress(100);
       setProcessingStatus("Processing complete!");
-      console.log("Audio separation completed successfully:", result);
+      console.log("Audio separation completed successfully");
 
-      // Store the result paths for download
-      setVocalsUrl(`http://localhost:5000${result.vocalsPath}`);
-      setInstrumentalUrl(`http://localhost:5000${result.accompanimentPath}`);
+      // TODO: Set actual URLs from server response
+      // setVocalsUrl(`http://localhost:5000${result.vocalsPath}`);
+      // setInstrumentalUrl(`http://localhost:5000${result.accompanimentPath}`);
+      
+      // Demo URLs - replace with actual server response
+      setVocalsUrl("demo-vocals.wav");
+      setInstrumentalUrl("demo-instrumental.wav");
 
       setTimeout(() => {
         setAppState("results");
